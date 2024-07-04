@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <link rel="stylesheet" href="style.css">
+  <title>Assignment 3</title>
+  <style>
+  </style>
+</head>
+<body>
+    <h1>Hong Kong International Airport Flight Information</h1>
+    <h2>Date:
+      <span id = date></span>
+    </h2>
+    <h3><p id="p1"><u>Departure</u></p>
+    <label class="switch">
+      <input class="sliderInput" type="checkbox">
+      <span class="slider round"></span>
+    </label><p id="p2">Arrival</p>
+    </h3>
+    <h4><p id="info"><b>Departure Information</b></p></h4>
+    <div id="center"><button type="button" id ="early" onclick="earlyfunct()">Load Early Flights</button></div>
+    <h5 id = "out"></h5>
+    <div id="center"><button type="button" id = "later" onclick="laterfunct()">Load More Flights</button></div>
+  
+  
+  
+  <script>
+    var arrival = 'false'
+
+    const today = new Date();
+    let ye = new Intl.DateTimeFormat('en', { year: 'numeric' }).format(today);
+    let mo = new Intl.DateTimeFormat('en', { month: 'long' }).format(today);
+    let da = new Intl.DateTimeFormat('en', { day: '2-digit' }).format(today);
+    document.getElementById('date').innerHTML=(`${da} ${mo} ${ye}`);
+
+    let fullYear = new Intl.DateTimeFormat('en', { year: 'numeric' }).format(today);
+    let fullMonth = new Intl.DateTimeFormat('en', { month: '2-digit' }).format(today);
+    let fullDate = new Intl.DateTimeFormat('en', { day: '2-digit' }).format(today);
+
+    var date = (`${fullYear}-${fullMonth}-${fullDate}`);
+
+    function addZero(i) {
+      if (i < 10) {i = "0" + i}
+      return i;
+    }
+
+    const time = addZero(today.getHours()) + ':' + addZero(today.getMinutes());
+
+    document.querySelector('.sliderInput').addEventListener("change", (evt) => {
+      document.getElementById("early").style.display="inline-block";
+      document.getElementById("later").style.display="inline-block";
+      arrival = document.querySelector('.sliderInput').checked.toString()
+      if (document.querySelector('.sliderInput').checked == false) {
+        text = `Departure Information`
+        fetchDepartureData(arrival)
+        document.getElementById('p1').innerHTML = `<u>Departure</u>`;
+        document.getElementById('p2').innerHTML = `Arrival`;
+      }
+      else{
+        text = `Arrival Information`
+        fetchArrivalData(arrival)
+        document.getElementById('p1').innerHTML = `Departure`;
+        document.getElementById('p2').innerHTML = `<u>Arrival</u>`;;
+      }
+      document.getElementById("info").innerHTML = text;
+    })
+
+    async function getCountry(code){
+      const res = await fetch("iata.json")
+      const dest = await res.json()
+      for(dict in dest){
+        array = dest[dict];
+        if(array['iata_code'] == code){
+          return (array['municipality'] +'&nbsp(' + array['name'] +')')
+        }
+      }
+    }
+
+    async function fetchDepartureData(arrival){
+
+    var output = "";
+    const response = await fetch(`flight.php?date=` + date + `&lang=en&cargo=false&arrival=`+ arrival)
+    var respdata = await response.json();
+    for(let i =0;i<respdata.length;i++){
+      data = respdata[i]
+      if (data['date'] == date){
+        break
+      }
+    }
+    flightData = data['list'];
+    var count = 0;
+    for(idx in flightData){
+      flightDataPerTime = flightData[idx]
+      if (isAfter(time,flightDataPerTime['time'])){
+        output += `<div id = "output"><b>Flight No:</b>`
+        for (let i = 0; i < flightDataPerTime['flight'].length; i++) {
+          if(i==4){
+            output+='<br>'
+          }
+          if(i==8){
+            output+='<br>'
+          }
+          count++
+          flightCodes = flightDataPerTime['flight']
+          flightCode=flightCodes[i]
+          output += "&nbsp&nbsp" + flightCode['no']
+          if (count==10){
+            break
+          }
+        }
+      
+      output += `<span id="midup"><b>Scheduled Time:</b>&nbsp` + flightDataPerTime['time'] + `</span><br><br><b>Destination(Airport):</b>&nbsp<br>` + await getCountry((flightDataPerTime['destination'])[0]) + `<br><br>
+        <b>Terminal:</b>&nbsp` + flightDataPerTime['terminal'] + `&nbsp<b>Aisle:</b>&nbsp` + flightDataPerTime['aisle'] + `&nbsp<b>Gate:</b>&nbsp` + flightDataPerTime['gate'] +
+        `<span id="mid"><b>Status:</b>&nbsp`+ flightDataPerTime['status'] +`</span>` + `</div>`
+      if (count==10){
+        document.getElementById('out').innerHTML = output;
+        break
+      }
+    }
+  }
+}
+
+async function fetchArrivalData(arrival){
+
+  var output = "";
+  const response = await fetch(`flight.php?date=` + date + `&lang=en&cargo=false&arrival=`+ arrival)
+  var respdata = await response.json();
+  for(let i =0;i<respdata.length;i++){
+    data = respdata[i]
+    if (data['date'] == date){
+      break
+    }
+  }
+  flightData = data['list'];
+  var count = 0;
+  for(idx in flightData){
+    flightDataPerTime = flightData[idx]
+    if (isAfter(time,flightDataPerTime['time'])){
+      output += `<div id = "output"><b>Flight No:</b>`
+      for (let i = 0; i < flightDataPerTime['flight'].length; i++) {
+        if(i==4){
+          output+='<br>'
+        }
+        if(i==8){
+          output+='<br>'
+        }
+        count++
+        flightCodes = flightDataPerTime['flight']
+        flightCode=flightCodes[i]
+        output += "&nbsp&nbsp" + flightCode['no']
+        if (count==10){
+          break
+        }
+      }
+    
+    output += `<span id="midup"><b>Scheduled Time:</b>&nbsp` + flightDataPerTime['time'] + `</span><br><br><b>Origin(Airport):</b>&nbsp<br>` + await getCountry((flightDataPerTime['origin'])[0]) + `<br><br>
+      <b>Parking Stand:</b>&nbsp` + flightDataPerTime['stand'] + `&nbsp<b>Hall:</b>&nbsp` + flightDataPerTime['hall'] + `&nbsp<b>Belt:</b>&nbsp` + flightDataPerTime['baggage'] +
+      `<span id="mid"><b>Status:</b>&nbsp`+ flightDataPerTime['status'] +`</span>` + `</div>`
+    if (count==10){
+      document.getElementById('out').innerHTML = output;
+      break
+    }
+  }
+}
+}
+
+    function isAfter(a,b){
+      let x = a[0]+a[1]+a[2]+a[3]
+      let y = b[0]+b[1]+b[2]+b[3]
+      if (y > x){
+        return true
+      }
+      return false
+    }
+
+    function earlyfunct(){
+      document.getElementById("early").style.display="none"
+      document.getElementById("later").disabled = true; 
+      showearly()
+    }
+
+    function laterfunct(){
+      document.getElementById("later").style.display="none"
+      document.getElementById("early").disabled = true; 
+      showlater()
+    }
+
+
+    async function fetchDepartureDataBefore(arrival){
+      temp=""
+
+      const response = await fetch(`flight.php?date=` + date + `&lang=en&cargo=false&arrival=`+ arrival)
+      var respdata = await response.json();
+      for(let i =0;i<respdata.length;i++){
+        data = respdata[i]
+        if (data['date'] == date){
+          break
+        }
+      }
+      flightData = data['list'];
+      var count = 0;
+      for(idx in flightData){
+        flightDataPerTime = flightData[idx]
+        if (isAfter(time,flightDataPerTime['time'])){
+          break
+        }
+        temp += `<div id = "output"><b>Flight No:</b>`
+        for (let i = 0; i < flightDataPerTime['flight'].length; i++) {
+          if(i==4){
+            temp+='<br>'
+          }
+          if(i==8){
+            temp+='<br>'
+          }
+          flightCodes = flightDataPerTime['flight']
+            flightCode=flightCodes[i]
+            temp += "&nbsp&nbsp" + flightCode['no']
+        }
+        temp += `<span id="midup"><b>Scheduled Time:</b>&nbsp` + flightDataPerTime['time'] + `</span><br><br><b>Destination(Airport):</b>&nbsp<br>` + await getCountry((flightDataPerTime['destination'])[0]) + `<br><br>
+          <b>Terminal:</b>&nbsp` + flightDataPerTime['terminal'] + `&nbsp<b>Aisle:</b>&nbsp` + flightDataPerTime['aisle'] + `&nbsp<b>Gate:</b>&nbsp` + flightDataPerTime['gate'] +
+          `<span id="mid"><b>Status:</b>&nbsp`+ flightDataPerTime['status'] +`</span>` + `</div>`
+        }
+        document.getElementById('out').innerHTML = temp + document.getElementById('out').innerHTML;
+        document.getElementById("later").disabled = false;
+      }
+    
+      async function fetchArrivalDataBefore(arrival){
+        temp=""
+  
+        const response = await fetch(`flight.php?date=` + date + `&lang=en&cargo=false&arrival=`+ arrival)
+        var respdata = await response.json();
+        for(let i =0;i<respdata.length;i++){
+          data = respdata[i]
+          if (data['date'] == date){
+            break
+          }
+        }
+        flightData = data['list'];
+        var count = 0;
+        for(idx in flightData){
+          flightDataPerTime = flightData[idx]
+          if (isAfter(time,flightDataPerTime['time'])){
+            break
+          }
+          temp += `<div id = "output"><b>Flight No:</b>`
+          for (let i = 0; i < flightDataPerTime['flight'].length; i++) {
+            if(i==4){
+              temp+='<br>'
+            }
+            if(i==8){
+              temp+='<br>'
+            }
+            flightCodes = flightDataPerTime['flight']
+              flightCode=flightCodes[i]
+              temp += "&nbsp&nbsp" + flightCode['no']
+          }
+          temp += `<span id="midup"><b>Scheduled Time:</b>&nbsp` + flightDataPerTime['time'] + `</span><br><br><b>Origin(Airport):</b>&nbsp<br>` + await getCountry((flightDataPerTime['origin'])[0]) + `<br><br>
+          <b>Parking Stand:</b>&nbsp` + flightDataPerTime['stand'] + `&nbsp<b>Hall:</b>&nbsp` + flightDataPerTime['hall'] + `&nbsp<b>Belt:</b>&nbsp` + flightDataPerTime['baggage'] +
+          `<span id="mid"><b>Status:</b>&nbsp`+ flightDataPerTime['status'] +`</span>` + `</div>`
+          }
+          document.getElementById('out').innerHTML = temp + document.getElementById('out').innerHTML;
+          document.getElementById("later").disabled = false;
+        }
+
+
+        async function fetchDepartureDataAfter(arrival){
+          temp=""
+          const response = await fetch(`flight.php?date=` + date + `&lang=en&cargo=false&arrival=`+ arrival)
+          console.log(response)
+          var respdata = await response.json();
+          console.log(respdata)
+          for(let i =0;i<respdata.length;i++){
+            data = respdata[i]
+            if (data['date'] == date){
+              break
+            }
+          }
+          flightData = data['list'];
+          var count = 0;
+          for(idx in flightData){
+            flightDataPerTime = flightData[idx]
+            if (isAfter(time,flightDataPerTime['time'])){
+              count++
+              if (count>10){
+                temp += `<div id = "output"><b>Flight No:</b>`
+                for (let i = 0; i < flightDataPerTime['flight'].length; i++) {
+                if(i==4){
+                  temp+='<br>'
+                }
+                if(i==8){
+                  temp+='<br>'
+                }
+                flightCodes = flightDataPerTime['flight']
+                flightCode=flightCodes[i]
+                temp += "&nbsp&nbsp" + flightCode['no']
+              }
+            temp += `<span id="midup"><b>Scheduled Time:</b>&nbsp` + flightDataPerTime['time'] + `</span><br><br><b>Destination(Airport):</b>&nbsp<br>` + await getCountry((flightDataPerTime['destination'])[0]) + `<br><br>
+              <b>Terminal:</b>&nbsp` + flightDataPerTime['terminal'] + `&nbsp<b>Aisle:</b>&nbsp` + flightDataPerTime['aisle'] + `&nbsp<b>Gate:</b>&nbsp` + flightDataPerTime['gate'] +
+              `<span id="mid"><b>Status:</b>&nbsp`+ flightDataPerTime['status'] +`</span>` + `</div>`
+            }
+          }
+        }
+            document.getElementById('out').innerHTML += temp ;
+            document.getElementById("early").disabled = false; 
+          }
+
+
+          async function fetchArrivalDataAfter(arrival){
+            temp=""
+    
+          const response = await fetch(`flight.php?date=` + date + `&lang=en&cargo=false&arrival=`+ arrival)
+          var respdata = await response.json();
+          for(let i =0;i<respdata.length;i++){
+            data = respdata[i]
+            if (data['date'] == date){
+              break
+            }
+          }
+          flightData = data['list'];
+          var count = 0;
+          for(idx in flightData){
+            flightDataPerTime = flightData[idx]
+            if (isAfter(time,flightDataPerTime['time'])){
+              count++
+              if (count>10){
+                temp += `<div id = "output"><b>Flight No:</b>`
+                for (let i = 0; i < flightDataPerTime['flight'].length; i++) {
+                if(i==4){
+                  temp+='<br>'
+                }
+                if(i==8){
+                  temp+='<br>'
+                }
+                flightCodes = flightDataPerTime['flight']
+                  flightCode=flightCodes[i]
+                  temp += "&nbsp&nbsp" + flightCode['no']
+              }
+              temp += `<span id="midup"><b>Scheduled Time:</b>&nbsp` + flightDataPerTime['time'] + `</span><br><br><b>Origin(Airport):</b>&nbsp<br>` + await getCountry((flightDataPerTime['origin'])[0]) + `<br><br>
+              <b>Parking Stand:</b>&nbsp` + flightDataPerTime['stand'] + `&nbsp<b>Hall:</b>&nbsp` + flightDataPerTime['hall'] + `&nbsp<b>Belt:</b>&nbsp` + flightDataPerTime['baggage'] +
+              `<span id="mid"><b>Status:</b>&nbsp`+ flightDataPerTime['status'] +`</span>` + `</div>`
+            }}
+            }
+            document.getElementById('out').innerHTML += temp ;
+            document.getElementById("early").disabled = false; 
+          }
+            
+    
+
+
+    function showearly(){
+      if (document.querySelector('.sliderInput').checked == false) {
+        fetchDepartureDataBefore(arrival)
+      }
+      else{
+        fetchArrivalDataBefore(arrival)
+      }    
+    }
+
+    function showlater(){
+      if (document.querySelector('.sliderInput').checked == false) {
+        fetchDepartureDataAfter(arrival)
+      }
+      else{
+        fetchArrivalDataAfter(arrival)
+      }
+    }
+
+fetchDepartureData(arrival)
+  
+  </script>
+</body>
+</html>
